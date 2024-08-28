@@ -14,8 +14,8 @@ const int microStepPin2 = 9;
 const int microStepPin3 = 10;
 const int motorStepsPerRevolution = 1600;  // 1/8th microstepping
 const double motorDegreesPerStep = 360. / (double)motorStepsPerRevolution;
-const int maxSpeed = 10 * motorStepsPerRevolution;
-const int maxAcceleration = 10 * motorStepsPerRevolution;
+const int maxSpeed = 100 * motorStepsPerRevolution;
+const int maxAcceleration = 100 * motorStepsPerRevolution;
 
 AccelStepper stepper(AccelStepper::DRIVER, 4, 5);
 
@@ -25,12 +25,12 @@ double targetAngle = 180;
 
 long controlSteps = 0;
 
-double OUTPUT_MIN = -50;
-double OUTPUT_MAX = 50;
+double OUTPUT_MIN = -180;
+double OUTPUT_MAX = 180;
 
 double KP = 0.1;
-double KI = 50;
-double KD = 0;
+double KI = 10;
+double KD = 1;
 
 AutoPID pid(&encoderAngle, &targetAngle, &controlAngle, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
