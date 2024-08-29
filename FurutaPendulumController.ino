@@ -12,7 +12,7 @@ Encoder encoder(2, 3);
 const int microStepPin1 = 8;
 const int microStepPin2 = 9;
 const int microStepPin3 = 10;
-const int motorStepsPerRevolution = 1600;  // 1/8th microstepping
+const int motorStepsPerRevolution = 800;
 const double motorDegreesPerStep = 360. / (double)motorStepsPerRevolution;
 const int maxSpeed = 100 * motorStepsPerRevolution;
 const int maxAcceleration = 100 * motorStepsPerRevolution;
@@ -30,7 +30,7 @@ double OUTPUT_MAX = 180;
 
 double KP = 0.1;
 double KI = 10;
-double KD = 1;
+double KD = 100;
 
 AutoPID pid(&encoderAngle, &targetAngle, &controlAngle, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
@@ -41,8 +41,7 @@ void setup() {
   pinMode(microStepPin2, OUTPUT);
   pinMode(microStepPin3, OUTPUT);
 
-  // 1/8th microstep
-  digitalWrite(microStepPin1, HIGH);
+  digitalWrite(microStepPin1, LOW);
   digitalWrite(microStepPin2, HIGH);
   digitalWrite(microStepPin3, LOW);
 
