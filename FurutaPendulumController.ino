@@ -2,54 +2,44 @@
 #include <AccelStepper.h>
 #include <AutoPID.h>
 
+// encoder
+Encoder encoder(2, 3);
 const int encoderStepsPerRevolution = 2400;
 const double encoderDegreesPerStep = 360. / (double)encoderStepsPerRevolution;
-const float ANGLE_MIN = 140;
-const float ANGLE_MAX = 220;
 
-Encoder encoder(2, 3);
-
-const int microStepPin1 = 8;
-const int microStepPin2 = 9;
-const int microStepPin3 = 10;
-const int motorStepsPerRevolution = 800;
+// stepper
+AccelStepper stepper(AccelStepper::DRIVER, 4, 5);
+const int motorStepsPerRevolution = 400;
 const double motorDegreesPerStep = 360. / (double)motorStepsPerRevolution;
 const int maxSpeed = 100 * motorStepsPerRevolution;
 const int maxAcceleration = 100 * motorStepsPerRevolution;
 
-AccelStepper stepper(AccelStepper::DRIVER, 4, 5);
-
+// PID
 double encoderAngle = 0;
 double controlAngle = 0;
 double targetAngle = 180;
-
+double minControlAngle = -90;
+double maxControlAngle = 90;
+double minActiveAngle = 140;
+double maxActiveAngle = 220;
+double kp = 0.1;
+double ki = 10;
+double kd = 0;
 long controlSteps = 0;
+long controlTimestep = 1;
+AutoPID pid(&encoderAngle, &targetAngle, &controlAngle, minControlAngle, maxControlAngle, kp, ki, kd);
 
-double OUTPUT_MIN = -180;
-double OUTPUT_MAX = 180;
-
-double KP = 0.1;
-double KI = 10;
-double KD = 100;
-
-AutoPID pid(&encoderAngle, &targetAngle, &controlAngle, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
+// logging
+unsigned long lastLogTimestamp = millis();
+int logInterval = 10;
 
 void setup() {
-  Serial.begin(9600);
-
-  pinMode(microStepPin1, OUTPUT);
-  pinMode(microStepPin2, OUTPUT);
-  pinMode(microStepPin3, OUTPUT);
-
-  digitalWrite(microStepPin1, LOW);
-  digitalWrite(microStepPin2, HIGH);
-  digitalWrite(microStepPin3, LOW);
+  Serial.begin(115200);
 
   stepper.setMaxSpeed(maxSpeed);
   stepper.setAcceleration(maxAcceleration);
 
-  pid.setBangBang(10);
-  pid.setTimeStep(1);
+  pid.setTimeStep(controlTimestep);
 }
 
 void readEncoder() {
@@ -60,9 +50,6 @@ void readEncoder() {
   }
   encoderAngle = angle;
 }
-
-unsigned long lastLogTimestamp = millis();
-int logInterval = 100;
 
 void log() {
   unsigned long currentTimestamp = millis();
@@ -81,16 +68,28 @@ void log() {
   }
 }
 
+void stopPID() {
+  pid.stop();
+  pid.reset();
+  controlSteps = 0;
+  controlAngle = 0;
+}
+
+void updateControlSteps() {
+  controlSteps = (long)floor(controlAngle / motorDegreesPerStep);
+}
+
 void runController() {
   readEncoder();
-  pid.run();
-  controlSteps = (long)round(controlAngle / motorDegreesPerStep);
-  stepper.move(controlSteps);
 
-  if (encoderAngle <= ANGLE_MAX && encoderAngle >= ANGLE_MIN) {
+  if (encoderAngle <= maxActiveAngle && encoderAngle >= minActiveAngle) {
+    pid.run();
+    updateControlSteps();
+    stepper.move(controlSteps);
     stepper.run();
   } else {
-    pid.stop();
+    stepper.stop();
+    stopPID();
   }
 
   log();
@@ -111,5 +110,4 @@ void runMotorTest() {
 
 void loop() {
   runController();
-  // runMotorTest();
 }
